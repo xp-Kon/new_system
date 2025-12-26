@@ -1,0 +1,110 @@
+/* uni.scss - 全局主题变量与通用样式 */
+
+$bg: #f6f7fb;
+$card: #ffffff;
+$text: #1f2937;
+$sub: #6b7280;
+$line: rgba(15, 23, 42, 0.08);
+
+$primary: #2563eb;
+$danger: #ef4444;
+$warn: #f59e0b;
+
+$radius: 16rpx;
+$shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.10);
+
+.page {
+  min-height: 100vh;
+  background: $bg;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.card {
+  background: $card;
+  border-radius: $radius;
+  box-shadow: $shadow;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.h1 {
+  font-size: 38rpx;
+  color: $text;
+  font-weight: 700;
+  margin-bottom: 14rpx;
+}
+
+.p {
+  font-size: 28rpx;
+  color: $sub;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.space {
+  justify-content: space-between;
+}
+
+.btn {
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.btn-primary {
+  background: $primary;
+  color: #fff;
+}
+
+.btn-danger {
+  background: $danger;
+  color: #fff;
+}
+
+.btn-ghost {
+  background: rgba(37, 99, 235, 0.10);
+  color: $primary;
+}
+
+.input {
+  border: 1px solid $line;
+  background: rgba(255,255,255,0.9);
+  border-radius: 14rpx;
+  padding: 18rpx 20rpx;
+  box-sizing: border-box;
+  font-size: 30rpx;
+  color: $text;
+}
+
+.textarea {
+  border: 1px solid $line;
+  background: rgba(255,255,255,0.9);
+  border-radius: 14rpx;
+  padding: 18rpx 20rpx;
+  box-sizing: border-box;
+  font-size: 30rpx;
+  color: $text;
+  min-height: 260rpx;
+}
+
+.badge {
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  background: rgba(15,23,42,0.06);
+  color: $sub;
+}
+
+.badge-pub {
+  background: rgba(16,185,129,0.12);
+  color: #059669;
+}
+
+.badge-draft {
+  background: rgba(245,158,11,0.16);
+  color: #b45309;
+}

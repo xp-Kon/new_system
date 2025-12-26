@@ -1,0 +1,181 @@
+<template>
+  <view class="page" v-if="id>0">
+    <view class="card">
+      <text class="h1">{{ item.title }}</text>
+      <view class="meta">
+        <text class="meta-txt" v-if="item.publish_time">发布：{{ fmtTime(item.publish_time) }}</text>
+        <text class="meta-txt" v-else>未发布</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <text class="sec">公告内容</text>
+      <!-- 修改点1：移除 preview 属性（该属性可能触发样式文件加载），改用自定义预览逻辑 -->
+      <rich-text class="rt" :nodes="safeHtml"></rich-text>
+      <!-- 补充：如果需要图片预览，手动实现（可选） -->
+      <view v-if="hasImage" class="img-preview-tip" @click="previewImages">
+        点击图片可预览
+      </view>
+    </view>
+
+    <view class="card row space">
+      <button class="btn btn-ghost" @click="goEdit">编辑</button>
+
+      <view class="row" style="gap:12rpx;">
+        <button class="btn btn-danger" @click="delOne">删除</button>
+        <button class="btn btn-primary" :disabled="item.status==='published'" @click="publish">发布</button>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import { get, post, del } from '../../utils/api.js'
+
+export default {
+  data() {
+    return { 
+      id: 0, 
+      item: {},
+      imageUrls: [] // 存储富文本中的图片链接，用于预览
+    }
+  },
+  computed: {
+    safeHtml() {
+      if (!this.item || !this.item.content) return ''
+      const html = String(this.item.content)
+      // 修改点2：提取图片链接，用于手动预览，同时避免组件自动加载样式
+      this.extractImageUrls(html)
+      return html
+    },
+    hasImage() {
+      return this.imageUrls.length > 0
+    }
+  },
+  onLoad(q) {
+    this.id = Number((q && q.id) || 0)
+    this.loadOne()
+  },
+  onShow() {
+    if (this.id > 0) this.loadOne()
+  },
+  methods: {
+    // 新增：提取富文本中的图片链接
+    extractImageUrls(html) {
+      const imgReg = /<img[^>]+src="?([^"\s]+)"?\s*\/?>/gi
+      const urls = []
+      let match
+      while ((match = imgReg.exec(html)) !== null) {
+        urls.push(match[1])
+      }
+      this.imageUrls = urls
+    },
+    // 新增：手动实现图片预览
+    previewImages() {
+      if (!this.imageUrls.length) return
+      uni.previewImage({
+        urls: this.imageUrls,
+        current: this.imageUrls[0]
+      })
+    },
+    fmtTime(v) {
+      if (!v) return ''
+      const d = (typeof v === 'number') ? new Date(v) : new Date(String(v).replace(' ', 'T'))
+      if (isNaN(d.getTime())) return String(v)
+      const Y = d.getFullYear()
+      const M = String(d.getMonth() + 1).padStart(2, '0')
+      const D = String(d.getDate()).padStart(2, '0')
+      const h = String(d.getHours()).padStart(2, '0')
+      const m = String(d.getMinutes()).padStart(2, '0')
+      return `${Y}-${M}-${D}  ${h}:${m}`
+    },
+    async loadOne() {
+      try { // 修改点3：添加 try/catch 捕获异步错误，增强稳定性
+        const res = await get('/api/notices/' + this.id)
+        if (!res || res.code !== 0) {
+          return uni.showToast({ title: (res && res.msg) || '加载失败', icon: 'none' })
+        }
+        this.item = res.data || {}
+      } catch (err) {
+        uni.showToast({ title: '网络异常，加载失败', icon: 'none' })
+        console.error('加载公告失败：', err)
+      }
+    },
+    goEdit() {
+      uni.navigateTo({ url: '/pages/notice_edit/notice_edit?id=' + this.id })
+    },
+    publish() {
+      uni.showModal({
+        title: '提示',
+        content: '确定发布？',
+        success: async (r) => {
+          if (!r.confirm) return
+          try { // 修改点4：添加 try/catch 捕获发布接口错误
+            const res = await post('/api/notices/' + this.id + '/publish', {})
+            if (!res || res.code !== 0) return uni.showToast({ title: (res && res.msg) || '发布失败', icon: 'none' })
+            uni.showToast({ title: '已发布', icon: 'success' })
+            this.loadOne()
+          } catch (err) {
+            uni.showToast({ title: '网络异常，发布失败', icon: 'none' })
+            console.error('发布公告失败：', err)
+          }
+        }
+      })
+    },
+    delOne() {
+      uni.showModal({
+        title: '提示',
+        content: '确定删除？',
+        success: async (r) => {
+          if (!r.confirm) return
+          try { // 修改点5：添加 try/catch 捕获删除接口错误
+            const res = await del('/api/notices/' + this.id)
+            if (!res || res.code !== 0) return uni.showToast({ title: (res && res.msg) || '删除失败', icon: 'none' })
+            uni.showToast({ title: '已删除', icon: 'success' })
+            setTimeout(() => uni.navigateBack(), 300)
+          } catch (err) {
+            uni.showToast({ title: '网络异常，删除失败', icon: 'none' })
+            console.error('删除公告失败：', err)
+          }
+        }
+      })
+    }
+  }
+}
+</script>
+
+<style>
+.page { min-height: 100vh; background: #f6f7fb; padding: 24rpx; box-sizing: border-box; }
+.card { background: #fff; border-radius: 16rpx; box-shadow: 0 12rpx 30rpx rgba(15,23,42,0.10); padding: 24rpx; margin-bottom: 20rpx; }
+.row { display: flex; flex-direction: row; align-items: center; }
+.space { justify-content: space-between; }
+
+.h1 { font-size: 38rpx; color: #1f2937; font-weight: 800; line-height: 54rpx; }
+.sec { display: block; font-size: 28rpx; color: #6b7280; margin-bottom: 12rpx; }
+.meta { margin-top: 14rpx; }
+.meta-txt { font-size: 24rpx; color: #6b7280; }
+
+/* 修改点6：自定义 rich-text 样式，替代缺失的组件样式文件 */
+.rt { 
+  font-size: 30rpx; 
+  color: #111827; 
+  line-height: 48rpx; 
+  width: 100%;
+}
+.rt img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8rpx;
+  margin: 8rpx 0;
+}
+.img-preview-tip {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+}
+
+.btn { border-radius: 999rpx; overflow: hidden; }
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-ghost { background: rgba(37,99,235,0.10); color: #2563eb; }
+</style>

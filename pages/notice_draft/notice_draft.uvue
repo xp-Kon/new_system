@@ -1,0 +1,95 @@
+<template>
+  <view class="page">
+    <view class="card head">
+      <view class="head-row">
+        <text class="h1">草稿箱</text>
+        <button class="btn btn-primary" size="mini" @click="goAdd">新增草稿</button>
+      </view>
+    </view>
+
+    <view v-for="it in list" :key="it.id" class="card">
+      <view class="row space">
+        <text class="t-title">{{ it.title }}</text>
+        <button class="btn btn-ghost" size="mini" @click.stop="goEdit(it.id)">编辑</button>
+      </view>
+
+      <text class="t-content">{{ cut(it.content) }}</text>
+      <text class="t-time" v-if="it.updated_at">更新：{{ fmtTime(it.updated_at) }}</text>
+    </view>
+
+    <view class="card row space">
+      <button class="btn btn-ghost" size="mini" :disabled="page<=1" @click="prevPage">上一页</button>
+      <text class="p">第 {{ page }} / {{ pageCount }} 页（{{ total }}条）</text>
+      <button class="btn btn-ghost" size="mini" :disabled="page>=pageCount" @click="nextPage">下一页</button>
+    </view>
+  </view>
+</template>
+
+<script>
+import { get } from '../../utils/api.js'
+
+export default {
+  data() {
+    return { list: [], page: 1, size: 10, total: 0 }
+  },
+  computed: {
+    pageCount() {
+      const n = Math.ceil(this.total / this.size)
+      return n < 1 ? 1 : n
+    }
+  },
+  onLoad() { this.loadList() },
+  onShow() { this.loadList() },
+  methods: {
+    fmtTime(v) {
+      if (!v) return ''
+      const d = (typeof v === 'number') ? new Date(v) : new Date(String(v).replace(' ', 'T'))
+      if (isNaN(d.getTime())) return String(v)
+      const Y = d.getFullYear()
+      const M = String(d.getMonth() + 1).padStart(2, '0')
+      const D = String(d.getDate()).padStart(2, '0')
+      const h = String(d.getHours()).padStart(2, '0')
+      const m = String(d.getMinutes()).padStart(2, '0')
+      return `${Y}-${M}-${D}  ${h}:${m}`
+    },
+    cut(s) {
+      s = (s || '').trim()
+      if (s.length > 80) return s.slice(0, 80) + '...'
+      return s
+    },
+    async loadList() {
+      const res = await get('/api/notices', { page: this.page, size: this.size, status: 'draft' })
+      if (!res || res.code !== 0) {
+        return uni.showToast({ title: (res && res.msg) || '加载失败', icon: 'none' })
+      }
+      this.list = res.data.list || []
+      this.total = res.data.total || 0
+    },
+    goAdd() { uni.navigateTo({ url: '/pages/notice_edit/notice_edit?mode=add' }) },
+    goEdit(id) { uni.navigateTo({ url: '/pages/notice_edit/notice_edit?id=' + id }) },
+    prevPage() { if (this.page<=1) return; this.page--; this.loadList() },
+    nextPage() { if (this.page>=this.pageCount) return; this.page++; this.loadList() }
+  }
+}
+</script>
+
+<style lang="scss">
+.page { min-height: 100vh; background: #f6f7fb; padding: 24rpx; box-sizing: border-box; }
+.card { background: #fff; border-radius: 16rpx; box-shadow: 0 12rpx 30rpx rgba(15,23,42,0.10); padding: 24rpx; margin-bottom: 20rpx; }
+
+.head { padding: 22rpx 24rpx; }
+.head-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.h1 { font-size: 38rpx; color: #1f2937; font-weight: 800; }
+
+.row { display: flex; flex-direction: row; align-items: center; }
+.space { justify-content: space-between; }
+.p { font-size: 28rpx; color: #6b7280; }
+
+.t-title { font-size: 32rpx; font-weight: 700; color: #1f2937; }
+.t-content { margin-top: 10rpx; color: #111827; font-size: 28rpx; line-height: 44rpx; white-space: pre-wrap; }
+.t-time { margin-top: 10rpx; color: #6b7280; font-size: 24rpx; }
+
+.btn { border-radius: 999rpx; overflow: hidden; }
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-ghost { background: rgba(37,99,235,0.10); color: #2563eb; }
+</style>

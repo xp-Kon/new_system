@@ -1,0 +1,31 @@
+{
+	"pages": [
+	    {
+	      "path": "pages/index/index",
+	      "style": { "navigationBarTitleText": "首页" }
+	    },
+	    {
+	      "path": "pages/notice_list/notice_list",
+	      "style": { "navigationBarTitleText": "已发布公告" }
+	    },
+	    {
+	      "path": "pages/notice_draft/notice_draft",
+	      "style": { "navigationBarTitleText": "草稿箱" }
+	    },
+	    {
+	      "path": "pages/notice_edit/notice_edit",
+	      "style": { "navigationBarTitleText": "编辑公告" }
+	    },
+	    {
+	      "path": "pages/notice_detail/notice_detail",
+	      "style": { "navigationBarTitleText": "公告详情" }
+	    }
+	  ],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app x",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"uniIdRouter": {}
+}

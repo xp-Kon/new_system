@@ -1,0 +1,79 @@
+<template>
+  <view class="page">
+    <view class="panel">
+      <text class="h1">欢迎进入公告管理系统</text>
+      <text class="p">请选择入口</text>
+
+      <view class="btns">
+        <button class="btn btn-primary" @click="goPub">已发布公告</button>
+        <button class="btn btn-ghost" @click="goDraft">草稿箱</button>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+export default {
+  methods: {
+    goPub() {
+      uni.navigateTo({ url: '/pages/notice_list/notice_list' })
+    },
+    goDraft() {
+      uni.navigateTo({ url: '/pages/notice_draft/notice_draft' })
+    }
+  }
+}
+</script>
+
+<style lang="scss">
+/* 用 height:100vh 避免 100vh + padding 触发溢出滚动 */
+.page {
+  height: 100vh;
+  background: #f6f7fb;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 12rpx;     /* 原来24rpx -> 12rpx */
+  box-sizing: border-box;
+  overflow: hidden;   /* 再兜底：禁用页面滚动 */
+}
+
+.panel {
+  width: 92%;
+  max-width: 720rpx;
+  background: #fff;
+  border-radius: 18rpx;
+  box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.10);
+  padding: 26rpx 22rpx;  /* 原来更大 -> 收紧 */
+}
+
+.h1 {
+  font-size: 42rpx;
+  font-weight: 900;
+  color: #111827;
+  text-align: center;
+}
+
+.p {
+  margin-top: 6rpx;   /* 原来10rpx -> 6rpx */
+  font-size: 26rpx;   /* 略小一点减少高度 */
+  color: #6b7280;
+  text-align: center;
+}
+
+.btns {
+  margin-top: 18rpx;  /* 原来26rpx -> 18rpx */
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;         /* 原来16rpx -> 12rpx */
+}
+
+.btn {
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-ghost { background: rgba(37,99,235,0.10); color: #2563eb; }
+</style>
