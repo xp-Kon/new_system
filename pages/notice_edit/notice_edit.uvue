@@ -43,6 +43,11 @@
 </template>
 
 <script>
+/**
+ * 公告编辑页面
+ * 支持富文本编辑、 图片插入、 保存草稿和发布功能
+ * 页面模式：新增(mode=add) 或 编辑已有公告(id=xxx)
+ */
 import { get, post, put } from '../../utils/api.js'
 
 export default {
@@ -74,6 +79,10 @@ export default {
   },
 
   methods: {
+    /**
+     * 编辑器准备就绪回调
+     * 获取编辑器上下文，必要时填充已有内容
+     */
     onEditorReady() {
       uni.createSelectorQuery()
         .in(this)
@@ -85,22 +94,38 @@ export default {
         .exec()
     },
 
+    /**
+     * 编辑器内容变化回调
+     * 同步保存 HTML 格式和 Delta 格式（用于回显）
+     */
     onEditorInput(e) {
       this.contentHtml = e.detail.html || ''
       try { this.contentDeltaStr = JSON.stringify(e.detail.delta || {}) }
       catch (err) { this.contentDeltaStr = '' }
     },
 
+    /**
+     * 文本格式化
+     * @param {string} name - 格式名称（bold/italic/underline）
+     */
     fmt(name) {
       if (!this.editorCtx) return
       this.editorCtx.format(name)
     },
 
+    /**
+     * 列表格式化
+     * @param {string} type - 列表类型（ordered 有序 / bullet 无序）
+     */
     fmtList(type) {
       if (!this.editorCtx) return
       this.editorCtx.format('list', type)
     },
 
+    /**
+     * 插入图片
+     * 选择本地图片 → 上传到服务器 → 将图片插入编辑器
+     */
     async insertImage() {
       if (!this.editorCtx) return
 
@@ -120,7 +145,7 @@ export default {
       try {
         const up = await new Promise((resolve, reject) => {
           uni.uploadFile({
-            url: '/api/upload', // Use relative URL to avoid hardcoded server address
+            url: 'http://127.0.0.1:3000/api/upload',
             filePath,
             name: 'file',
             success: resolve,
@@ -129,7 +154,13 @@ export default {
         })
 
         let body = up.data
-        if (typeof body === 'string') body = JSON.parse(body)
+        if (typeof body === 'string') {
+          try {
+            body = body ? JSON.parse(body) : null
+          } catch (e) {
+            body = null
+          }
+        }
 
         if (!body || body.code !== 0) {
           uni.hideLoading()
@@ -138,7 +169,6 @@ export default {
 
         const url = body.data.url
 
-        // 插入图片到富文本
         this.editorCtx.insertImage({
           src: url,
           success: () => {}
@@ -151,6 +181,9 @@ export default {
       }
     },
 
+    /**
+     * 加载已有公告数据
+     */
     async loadOne() {
       const res = await get('/api/notices/' + this.id)
       if (!res || res.code !== 0) {
@@ -162,9 +195,13 @@ export default {
       this.fillEditorIfNeed()
     },
 
+    /**
+     * 填充编辑器内容
+     * 优先使用 Delta 格式（保留样式），回退使用 HTML 格式
+     */
     fillEditorIfNeed() {
       if (!this.editorCtx) return
-      if (this.contentDeltaStr) {
+      if (this.contentDeltaStr && typeof this.contentDeltaStr === 'string' && this.contentDeltaStr.trim()) {
         try {
           const delta = JSON.parse(this.contentDeltaStr)
           this.editorCtx.setContents({ delta })
@@ -174,6 +211,10 @@ export default {
       if (this.contentHtml) this.editorCtx.setContents({ html: this.contentHtml })
     },
 
+    /**
+     * 保存草稿
+     * 新增时创建新记录，更新时修改已有记录
+     */
     async save() {
       const t = (this.title || '').trim()
       const c = (this.contentHtml || '').trim()
@@ -196,6 +237,10 @@ export default {
       uni.showToast({ title: '已保存到草稿箱', icon: 'success' })
     },
 
+    /**
+     * 发布公告
+     * 将草稿状态改为已发布
+     */
     publish() {
       uni.showModal({
         title: '提示',

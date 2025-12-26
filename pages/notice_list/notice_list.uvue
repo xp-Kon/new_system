@@ -26,6 +26,10 @@
 </template>
 
 <script>
+/**
+ * 已发布公告列表页面
+ * 分页展示已发布状态的公告，支持新增、查看详情、编辑等操作
+ */
 import { get } from '../../utils/api.js'
 
 export default {
@@ -41,6 +45,10 @@ export default {
   onLoad() { this.loadList() },
   onShow() { this.loadList() },
   methods: {
+    /**
+     * 时间格式化
+     * 支持时间戳和 ISO 格式字符串
+     */
     fmtTime(v) {
       if (!v) return ''
       const d = (typeof v === 'number') ? new Date(v) : new Date(String(v).replace(' ', 'T'))
@@ -52,11 +60,27 @@ export default {
       const m = String(d.getMinutes()).padStart(2, '0')
       return `${Y}-${M}-${D}  ${h}:${m}`
     },
+
+    /**
+     * 内容摘要裁剪
+     * 去除 HTML 标签，图片内容显示为 [图片]，超长内容截断
+     */
     cut(s) {
       s = (s || '').trim()
+      if (!s) return ''
+      const hasImg = /<img[^>]*>/gi.test(s)
+      s = s.replace(/<img[^>]*>/gi, '')
+      s = s.replace(/<[^>]+>/g, '')
+      s = s.trim()
+      if (hasImg && !s) return '[图片]'
       if (s.length > 80) return s.slice(0, 80) + '...'
       return s
     },
+
+    /**
+     * 分页加载公告列表
+     * 只获取 status=published 的已发布公告
+     */
     async loadList() {
       const res = await get('/api/notices', { page: this.page, size: this.size, status: 'published' })
       if (!res || res.code !== 0) {
@@ -65,10 +89,19 @@ export default {
       this.list = res.data.list || []
       this.total = res.data.total || 0
     },
+
     goAdd() { uni.navigateTo({ url: '/pages/notice_edit/notice_edit?mode=add' }) },
     goEdit(id) { uni.navigateTo({ url: '/pages/notice_edit/notice_edit?id=' + id }) },
     goDetail(id) { uni.navigateTo({ url: '/pages/notice_detail/notice_detail?id=' + id }) },
+
+    /**
+     * 上一页
+     */
     prevPage() { if (this.page<=1) return; this.page--; this.loadList() },
+
+    /**
+     * 下一页
+     */
     nextPage() { if (this.page>=this.pageCount) return; this.page++; this.loadList() }
   }
 }

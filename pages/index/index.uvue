@@ -26,7 +26,6 @@ export default {
 </script>
 
 <style lang="scss">
-/* 用 height:100vh 避免 100vh + padding 触发溢出滚动 */
 .page {
   height: 100vh;
   background: #f6f7fb;
@@ -34,9 +33,9 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 12rpx;     /* 原来24rpx -> 12rpx */
+  padding: 12rpx;
   box-sizing: border-box;
-  overflow: hidden;   /* 再兜底：禁用页面滚动 */
+  overflow: hidden;
 }
 
 .panel {
@@ -45,7 +44,7 @@ export default {
   background: #fff;
   border-radius: 18rpx;
   box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.10);
-  padding: 26rpx 22rpx;  /* 原来更大 -> 收紧 */
+  padding: 26rpx 22rpx;
 }
 
 .h1 {
@@ -56,17 +55,17 @@ export default {
 }
 
 .p {
-  margin-top: 6rpx;   /* 原来10rpx -> 6rpx */
-  font-size: 26rpx;   /* 略小一点减少高度 */
+  margin-top: 6rpx;
+  font-size: 26rpx;
   color: #6b7280;
   text-align: center;
 }
 
 .btns {
-  margin-top: 18rpx;  /* 原来26rpx -> 18rpx */
+  margin-top: 18rpx;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;         /* 原来16rpx -> 12rpx */
+  gap: 12rpx;
 }
 
 .btn {

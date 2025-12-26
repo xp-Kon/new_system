@@ -1,7 +1,5 @@
 <script lang="uts">
-  // #ifdef APP-ANDROID || APP-HARMONY
 	let firstBackTime = 0
-  // #endif
 	export default {
 		onLaunch: function () {
 			console.log('App Launch')
@@ -12,7 +10,6 @@
 		onHide: function () {
 			console.log('App Hide')
 		},
-		// #ifdef APP-ANDROID || APP-HARMONY
 		onLastPageBackPress: function () {
 			console.log('App LastPageBackPress')
 			if (firstBackTime == 0) {
@@ -29,7 +26,6 @@
 				uni.exit()
 			}
 		},
-		// #endif
 		onExit: function () {
 			console.log('App Exit')
 		},
@@ -37,7 +33,6 @@
 </script>
 
 <style>
-/* 关键：清除默认外边距 + 禁止页面产生滚动条 */
 html, body, page {
   margin: 0;
   padding: 0;
@@ -47,8 +42,7 @@ html, body, page {
 .uni-row {
 		flex-direction: row;
 	}
-
-	.uni-column {
+.uni-column {
 		flex-direction: column;
 	}
 </style>

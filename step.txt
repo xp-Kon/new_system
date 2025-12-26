@@ -1,0 +1,525 @@
+# 公告系统项目部署指南
+
+## 环境准备
+
+### 1. 安装 Node.js
+- 访问 https://nodejs.org/ 下载并安装 LTS 版本（建议 18.x 或更高）
+- 安装完成后打开终端验证版本：
+  ```bash
+  node -v
+  npm -v
+  ```
+
+### 2. 安装 HBuilderX
+- 访问 https://www.dcloud.io/hbuilderx.html 下载 HBuilderX
+- 安装时选择"App开发版"或"完整版"
+- 安装完成后启动 HBuilderX
+
+### 3. 安装 Git（可选）
+- 访问 https://git-scm.com/ 下载并安装 Git
+- 用于版本管理和获取项目代码
+
+---
+
+## 项目获取
+
+### 4. 获取项目代码
+```bash
+cd e:\代课\公告系统\AnnouncementSystem
+git clone <项目仓库地址> new_system2
+```
+或直接解压项目压缩包到目标目录
+
+### 5. 打开项目
+1. 启动 HBuilderX
+2. 点击"文件" → "打开目录"
+3. 选择 `e:\代课\公告系统\AnnouncementSystem\new_system2`
+4. 等待项目索引完成
+
+---
+
+## 后端服务部署
+
+### 6. 安装后端依赖
+```bash
+cd e:\代课\公告系统\AnnouncementSystem\new_system2\notice-api
+npm install
+```
+
+### 7. 启动后端服务
+```bash
+cd e:\代课\公告系统\AnnouncementSystem\new_system2\notice-api
+node server.js
+```
+
+后端服务启动后将在 `http://localhost:3000` 运行
+
+**验证后端是否正常运行：**
+- 浏览器访问 http://localhost:3000/api/notices
+- 应返回公告列表数据（JSON格式）
+
+---
+
+## 数据库配置
+
+### 8. 安装 MySQL
+1. 访问 https://dev.mysql.com/downloads/installer/ 下载 MySQL 安装程序
+2. 下载 "Windows (x86, 32-bit), MSI Installer" 版本
+3. 运行安装程序，选择 "Server only" 或 "Developer Default"
+4. 设置 root 密码（建议：123456），并记住此密码
+5. 确保勾选 "Start the MySQL Server at system Startup"
+6. 安装完成后，MySQL 服务会自动启动
+
+**验证 MySQL 是否安装成功：**
+```bash
+mysql --version
+```
+
+**检查 MySQL 服务状态：**
+```bash
+# PowerShell 中执行
+Get-Service MySQL
+```
+
+### 9. 创建数据库和用户
+
+#### 方式一：使用 MySQL 命令行
+
+1. **打开 MySQL 命令行**
+   - 按 Win + R，输入 `cmd`，回车
+   - 登录 MySQL：
+   ```bash
+   mysql -u root -p
+   ```
+   - 输入安装时设置的 root 密码
+
+2. **执行以下 SQL 语句创建数据库和用户**
+   ```sql
+   -- 创建数据库
+   CREATE DATABASE IF NOT EXISTS announcement_system DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+   -- 创建用户并授权
+   CREATE USER IF NOT EXISTS 'notice_user'@'localhost' IDENTIFIED BY '123456';
+   GRANT ALL PRIVILEGES ON announcement_system.* TO 'notice_user'@'localhost';
+   FLUSH PRIVILEGES;
+
+   -- 切换到新数据库
+   USE announcement_system;
+   ```
+
+3. **创建公告表**
+   ```sql
+   -- 创建公告表
+   CREATE TABLE IF NOT EXISTS notice (
+     id INT PRIMARY KEY AUTO_INCREMENT,
+     title VARCHAR(255) NOT NULL,
+     content TEXT NOT NULL,
+     content_delta TEXT NULL,
+     status ENUM('draft', 'published') DEFAULT 'draft',
+     publish_time DATETIME NULL,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+   );
+   ```
+
+4. **验证表创建成功**
+   ```sql
+   SHOW TABLES;
+   ```
+
+#### 方式二：使用 MySQL Workbench
+
+1. 打开 MySQL Workbench
+2. 连接到本地 MySQL 服务器
+3. 在 Schema 面板右键 → "Create Schema"
+4. 输入数据库名：`announcement_system`
+5. 选择字符集：`utf8mb4`，排序规则：`utf8mb4_unicode_ci`
+6. 点击 "Apply"
+7. 创建用户：
+   ```sql
+   CREATE USER 'notice_user'@'localhost' IDENTIFIED BY '123456';
+   GRANT ALL PRIVILEGES ON announcement_system.* TO 'notice_user'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+8. 创建表：在查询窗口执行上述 CREATE TABLE 语句
+
+### 10. 配置数据库连接
+
+1. **安装 MySQL Node.js 驱动**
+   ```bash
+   cd e:\代课\公告系统\AnnouncementSystem\new_system2\notice-api
+   npm install mysql2
+   ```
+
+2. **创建数据库配置文件**
+   
+   编辑 `e:\代课\公告系统\AnnouncementSystem\new_system2\notice-api\db.js`，内容如下：
+   ```javascript
+   const mysql = require('mysql2');
+   require('dotenv').config();
+
+   const pool = mysql.createPool({
+     host: process.env.DB_HOST || 'localhost',
+     port: process.env.DB_PORT || 3306,
+     user: process.env.DB_USER || 'notice_user',
+     password: process.env.DB_PASSWORD || '123456',
+     database: process.env.DB_NAME || 'announcement_system',
+     connectionLimit: 10,
+     waitForConnections: true,
+     queueLimit: 0
+   });
+
+   module.exports = pool.promise();
+   ```
+
+3. **创建 .env 文件**
+   
+   在 `e:\代课\公告系统\AnnouncementSystem\new_system2\notice-api\` 目录下创建 `.env` 文件：
+   ```
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_USER=notice_user
+   DB_PASSWORD=123456
+   DB_NAME=announcement_system
+   ```
+
+4. **修改 server.js 使用数据库**
+   
+   在 `server.js` 顶部添加：
+   ```javascript
+   const db = require('./db');
+   ```
+
+5. **验证数据库连接**
+   ```bash
+   cd e:\代课\公告系统\AnnouncementSystem\new_system2\notice-api
+   node -e "const db = require('./db'); db.query('SELECT 1').then(() => console.log('数据库连接成功')).catch(e => console.error('连接失败:', e));"
+   ```
+
+### 11. 常见数据库问题
+
+#### 问题 1：MySQL 服务无法启动
+
+**解决方法：**
+1. 检查错误日志：`mysqld --console`
+2. 端口被占用：修改 `my.ini` 中的端口号
+3. 重新安装 MySQL
+
+#### 问题 2：无法连接数据库
+
+**错误信息：** `Access denied for user 'notice_user'@'localhost'`
+
+**解决方法：**
+1. 检查用户名和密码是否正确
+2. 检查用户权限：
+   ```sql
+   SELECT user, host FROM mysql.user;
+   ```
+3. 重新授权：
+   ```sql
+   DROP USER IF EXISTS 'notice_user'@'localhost';
+   CREATE USER 'notice_user'@'localhost' IDENTIFIED BY '123456';
+   GRANT ALL PRIVILEGES ON announcement_system.* TO 'notice_user'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+
+#### 问题 3：数据库字符集问题
+
+**解决方法：**
+```sql
+ALTER DATABASE announcement_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE notice CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+---
+
+## 前端运行
+
+### 8. 在 HBuilderX 中运行
+
+#### 方式一：H5 浏览器运行
+1. 在 HBuilderX 中右键点击项目根目录
+2. 选择"运行" → "运行到浏览器" → "Chrome"（或"Firefox"）
+3. 浏览器会自动打开，项目在 http://localhost:端口号 运行
+
+#### 方式二：运行到小程序
+1. 确保已安装对应小程序开发者工具
+2. 在 HBuilderX 中右键点击项目根目录
+3. 选择"运行" → "运行到小程序模拟器"
+4. 选择目标小程序平台（微信/百度/支付宝等）
+
+#### 方式三：运行到 App
+1. 连接真机或模拟器
+2. 在 HBuilderX 中右键点击项目根目录
+3. 选择"运行" → "运行到手机或模拟器"
+
+---
+
+## 项目结构说明
+
+```
+new_system2/
+├── pages/                    # 页面目录
+│   ├── index/               # 首页
+│   ├── login/               # 登录页
+│   ├── notice_list/         # 公告列表页
+│   ├── notice_detail/       # 公告详情页
+│   ├── notice_edit/         # 公告编辑页
+│   └── mine/                # 个人中心
+├── static/                  # 静态资源
+├── utils/                   # 工具函数
+│   └── api.js              # API 接口封装
+├── App.uvue                # 应用入口
+├── main.uts                # 应用配置
+├── pages.json              # 页面路由配置
+├── manifest.json           # 应用配置文件
+└── uni.scss                # 全局样式
+
+notice-api/                 # 后端服务
+├── server.js              # 服务入口
+├── package.json           # 依赖配置
+└── uploads/               # 图片上传目录
+```
+
+---
+
+## API 接口说明
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| /api/notices | GET | 获取公告列表 |
+| /api/notices/:id | GET | 获取公告详情 |
+| /api/notices | POST | 创建公告 |
+| /api/notices/:id | PUT | 更新公告 |
+| /api/notices/:id | DELETE | 删除公告 |
+| /api/upload | POST | 上传图片 |
+| /api/login | POST | 用户登录 |
+
+---
+
+## 常见问题与解决方案
+
+### 问题 1：后端服务启动失败
+
+**错误信息：** `Error: Cannot find module 'express'`
+
+**解决方法：**
+```bash
+cd e:\代课\公告系统\AnnouncementSystem\new_system2\notice-api
+npm install
+```
+
+### 问题 2：图片上传失败
+
+**错误信息：** `Failed to load resource: net::ERR_CONNECTION_REFUSED`
+
+**解决方法：**
+1. 确保后端服务正在运行（http://localhost:3000）
+2. 检查 notice_edit.uvue 中的上传地址配置：
+   ```typescript
+   url: 'http://127.0.0.1:3000/api/upload'
+   ```
+
+### 问题 3：富文本编辑器不显示图片
+
+**解决方法：**
+1. 清理项目缓存：HBuilderX → "工具" → "清理项目缓存"
+2. 重新运行项目
+
+### 问题 4：页面滚动异常
+
+**解决方法：**
+确保使用 `scroll-view` 组件包裹可滚动内容：
+```html
+<scroll-view scroll-y class="content">
+  <!-- 页面内容 -->
+</scroll-view>
+```
+
+### 问题 5：编译报错 "Cannot find module"
+
+**解决方法：**
+1. 检查 package.json 是否存在
+2. 重新安装依赖：
+```bash
+cd e:\代课\公告系统\AnnouncementSystem\new_system2
+npm install
+```
+
+### 问题 6：API 请求跨域
+
+**错误信息：** `CORS policy` 错误
+
+**解决方法：**
+后端 server.js 已配置 CORS，无需额外配置。如仍有问题，检查浏览器网络请求。
+
+### 问题 7：图片太大无法滚动
+
+**解决方法：**
+在 notice_detail.uvue 中添加图片样式限制：
+```scss
+.rich-content {
+  ::v-deep img {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+  }
+}
+```
+
+### 问题 8：发布公告后图片内容显示异常
+
+**解决方法：**
+修改 notice_list.uvue 的 cut 方法，将图片标签替换为占位符：
+```typescript
+methods: {
+  cut(s) {
+    if (!s) return ''
+    // 替换图片标签为<图片>
+    s = s.replace(/<img[^>]*>/gi, '<图片>')
+    // 替换空段落
+    s = s.replace(/<p>\s*<\/p>/gi, '')
+    s = (s || '').trim()
+    if (s.length > 80) return s.slice(0, 80) + '...'
+    return s
+  }
+}
+```
+
+---
+
+## 开发调试技巧
+
+### 1. 开启 Vue 开发者工具
+- 在 Chrome 浏览器安装 Vue Devtools 扩展
+- 开发模式下自动启用
+
+### 2. 后端日志查看
+后端服务启动后会显示请求日志，包括：
+- 请求方法
+- 请求路径
+- 响应状态
+- 响应时间
+
+### 3. 网络请求调试
+- 在 HBuilderX 控制台查看网络请求
+- 使用浏览器开发者工具（F12）的 Network 面板
+
+### 4. 热更新
+HBuilderX 支持代码保存后自动热更新，无需重新编译。
+
+---
+
+## 生产部署
+
+### 前端部署（以 H5 为例）
+
+1. **打包项目**
+   - HBuilderX → "发行" → "网站-H5 手机版"
+   - 生成的文件在 `dist/build/h5` 目录
+
+2. **部署到服务器**
+   - 将 `dist/build/h5` 目录内容上传到 Web 服务器
+   - 配置 Nginx 或其他 Web 服务器
+
+3. **Nginx 配置示例**
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+       root /path/to/your/project;
+       index index.html;
+       
+       location / {
+           try_files $uri $uri/ /index.html;
+       }
+   }
+   ```
+
+### 后端部署
+
+1. **安装 Node.js 生产环境**
+   ```bash
+   # 在服务器上
+   node -v
+   ```
+
+2. **上传代码**
+   ```bash
+   cd /path/to/server
+   git clone <your-repo>
+   cd notice-api
+   npm install --production
+   ```
+
+3. **使用 PM2 管理进程**
+   ```bash
+   npm install -g pm2
+   pm2 start server.js
+   pm2 startup
+   pm2 save
+   ```
+
+4. **配置反向代理**
+   ```nginx
+   server {
+       listen 80;
+       server_name api.your-domain.com;
+       
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+### 数据库配置
+当前版本使用文件存储数据，生产环境建议：
+1. 迁移到 MySQL 或 PostgreSQL
+2. 更新 server.js 中的数据库连接配置
+3. 创建必要的数据库表
+
+---
+
+## 项目技术栈
+
+| 技术 | 版本/说明 |
+|------|----------|
+| uni-app x | 跨平台框架 |
+| Vue 3 | 前端框架 |
+| TypeScript | 类型支持 |
+| SCSS | CSS 预处理器 |
+| Node.js | 后端运行时 |
+| Express | Web 框架 |
+| Multer | 文件上传中间件 |
+
+---
+
+## 注意事项
+
+1. **后端必须先启动** - 前端依赖后端 API 服务
+2. **图片上传路径** - 确保 uploads 目录有写入权限
+3. **跨域配置** - 开发环境已配置 CORS，生产环境使用 Nginx 反向代理
+4. **端口占用** - 如 3000 端口被占用，修改 server.js 中的端口号
+5. **浏览器兼容性** - 建议使用 Chrome 80+ 或 Firefox 75+
+
+---
+
+## 快速启动清单
+
+- [ ] Node.js 已安装（v18+）
+- [ ] HBuilderX 已安装
+- [ ] 项目代码已获取
+- [ ] 后端依赖已安装（npm install）
+- [ ] 后端服务已启动（node server.js）
+- [ ] 前端已运行（浏览器访问正常）
+- [ ] 图片上传功能测试通过
+- [ ] 公告 CRUD 功能测试通过
+
+---
+
+最后更新：2025-01
